@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "disaster_intelligence_db"
 
     # AI & Integrations
+    AI_PROVIDER: str = "mock"  # gemini, openai, or mock
+    GEMINI_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
     ANTIGRAVITY_AI_API_KEY: str = "mock-antigravity-key"
     ANTIGRAVITY_AI_ENDPOINT: str = "https://api.antigravity.ai/v1/analyze"
 
