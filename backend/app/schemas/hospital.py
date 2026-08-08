@@ -3,6 +3,8 @@ Hospital Schemas — Bed tracking, ICU capacity, blood inventory DTOs
 """
 
 from typing import Optional, Literal, Dict
+
+from typing import List
 from pydantic import BaseModel, Field
 from app.schemas.geojson import GeoJSONPoint
 
