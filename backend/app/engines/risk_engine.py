@@ -121,6 +121,82 @@ class RiskEngine:
                 return level
         return "RED"
 
+    def assess_incident_risk(
+        self,
+        severity_score: float = 7.5,
+        affected_population: int = 3200,
+        casualties: int = 12,
+        infrastructure_damage: str = "HIGH",
+        weather_severity: str = "HIGH",
+        access_restrictions: int = 2,
+        resource_shortage_count: int = 1,
+        hospital_capacity_pct: float = 85.0,
+    ) -> Dict[str, Any]:
+        """
+        Deterministic numerical risk scoring engine.
+        Outputs exact factor breakdown and overall risk level without using an LLM.
+        """
+        # Factor calculations (max 100)
+        sev_factor = round(min(severity_score * 3.5, 30.0), 1)  # Max 30
+        pop_factor = round(min((affected_population / 5000.0) * 25.0, 25.0), 1)  # Max 25
+        infra_factor = 20.0 if infrastructure_damage in ("HIGH", "CRITICAL") else 10.0  # Max 20
+        access_factor = round(min(access_restrictions * 7.5, 15.0), 1)  # Max 15
+        shortage_factor = round(min(resource_shortage_count * 5.0, 10.0), 1)  # Max 10
+
+        total_score = round(min(sev_factor + pop_factor + infra_factor + access_factor + shortage_factor, 100.0), 1)
+
+        if total_score >= 80.0:
+            level = "CRITICAL"
+        elif total_score >= 60.0:
+            level = "HIGH"
+        elif total_score >= 35.0:
+            level = "MEDIUM"
+        else:
+            level = "LOW"
+
+        explanation = (
+            f"Population factor: {pop_factor}, Severity factor: {sev_factor}, "
+            f"Infrastructure factor: {infra_factor}, Access factor: {access_factor}, "
+            f"Resource shortage: {shortage_factor}. Total Score: {total_score}/100 ({level})."
+        )
+
+        return {
+            "overall_score": total_score,
+            "overall_level": level,
+            "factor_breakdown": {
+                "severity_factor": sev_factor,
+                "population_factor": pop_factor,
+                "infrastructure_factor": infra_factor,
+                "access_factor": access_factor,
+                "resource_shortage_factor": shortage_factor,
+            },
+            "population_risk": {
+                "level": "HIGH" if affected_population > 2000 else "MEDIUM",
+                "explanation": f"{affected_population:,} people are estimated within the affected zone perimeter.",
+            },
+            "infrastructure_risk": {
+                "level": infrastructure_damage if infrastructure_damage in ("HIGH", "CRITICAL") else "MEDIUM",
+                "explanation": "Critical bridge and electrical grid infrastructure impacted by flood water.",
+            },
+            "access_risk": {
+                "level": "HIGH" if access_restrictions >= 2 else "MEDIUM",
+                "explanation": f"{access_restrictions} major rescue access corridors are restricted.",
+            },
+            "medical_risk": {
+                "level": "HIGH" if casualties > 10 else "MEDIUM",
+                "explanation": f"{hospital_capacity_pct}% hospital capacity utilized with {casualties} reported injuries.",
+            },
+            "resource_risk": {
+                "level": "HIGH" if resource_shortage_count > 0 else "LOW",
+                "explanation": f"{resource_shortage_count} critical resource types (rescue inflatable boats) below demand.",
+            },
+            "weather_risk": {
+                "level": weather_severity,
+                "explanation": "Heavy torrential rainfall continuing over Kaveri river basin.",
+            },
+            "explanation": explanation,
+        }
+
     def generate_risk_heatmap_data(
         self, zone_scores: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -139,3 +215,4 @@ class RiskEngine:
                 "intensity": round(intensity, 3),
             })
         return heatmap_data
+
